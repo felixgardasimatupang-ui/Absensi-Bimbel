@@ -1,6 +1,21 @@
 import { useEffect, useState } from "react";
 import { api, apiBaseUrl } from "./api";
 
+// Import components
+import DashboardTab from "./components/DashboardTab";
+import BatchTab from "./components/BatchTab";
+import StudentTab from "./components/StudentTab";
+import ClassTab from "./components/ClassTab";
+import SessionTab from "./components/SessionTab";
+import AttendanceTab from "./components/AttendanceTab";
+import QrAttendanceTab from "./components/QrAttendanceTab";
+import EvaluationTab from "./components/EvaluationTab";
+import ReportTab from "./components/ReportTab";
+import NotificationTab from "./components/NotificationTab";
+import UserTab from "./components/UserTab";
+import RoleLimitTab from "./components/RoleLimitTab";
+import MobileAppTab from "./components/MobileAppTab";
+
 const initialForms = {
   login: { email: "", password: "" },
   batch: { name: "", level: "", description: "" },
@@ -60,20 +75,6 @@ const initialForms = {
   }
 };
 
-const dayOptions = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-const attendanceOptions = [
-  { value: "PRESENT", label: "Hadir" },
-  { value: "LATE", label: "Terlambat" },
-  { value: "EXCUSED", label: "Izin" },
-  { value: "SICK", label: "Sakit" },
-  { value: "ABSENT", label: "Alpha" }
-];
-const evaluationOptions = [
-  { value: "NEEDS_SUPPORT", label: "Perlu Pendampingan" },
-  { value: "DEVELOPING", label: "Berkembang" },
-  { value: "GOOD", label: "Baik" },
-  { value: "EXCELLENT", label: "Sangat Baik" }
-];
 const roleNameMap = {
   SUPER_ADMIN: "Super Admin",
   ADMIN: "Admin",
@@ -464,664 +465,125 @@ function App() {
         {toast ? <div className="toast-box">{toast}</div> : null}
         {error ? <div className="error-box">{error}</div> : null}
 
-        {activeTab === "dashboard" ? (
-          <>
-            <section className="metric-grid metric-grid-six">
-              {metrics.map((item) => (
-                <article key={item.label} className="metric-card">
-                  <span>{item.label}</span>
-                  <strong>{item.value}</strong>
-                </article>
-              ))}
-            </section>
-            <section className="panel-grid">
-              <article className="panel-card">
-                <div className="panel-head">
-                  <div>
-                    <p className="eyebrow">Aktivitas terbaru</p>
-                    <h3>Absensi terakhir</h3>
-                  </div>
-                </div>
-                <div className="stack-list">
-                  {data.recentAttendances.map((item) => (
-                    <div className="list-row" key={item.id}>
-                      <div>
-                        <strong>{item.student.fullName}</strong>
-                        <span>
-                          {item.session.classRoom.name} • {item.status}
-                        </span>
-                      </div>
-                      <small>{new Date(item.createdAt).toLocaleString("id-ID")}</small>
-                    </div>
-                  ))}
-                </div>
-              </article>
-              <article className="panel-card accent-card">
-                <p className="eyebrow">Ringkasan peran aktif</p>
-                <h3>{data.roleAccess?.label}</h3>
-                <ul className="feature-list">
-                  <li>Kelola master data: {access.canManageMasterData ? "Ya" : "Tidak"}</li>
-                  <li>Kelola absensi: {access.canManageAttendance ? "Ya" : "Tidak"}</li>
-                  <li>Buat QR absensi: {access.canCreateQr ? "Ya" : "Tidak"}</li>
-                  <li>Ekspor laporan: {access.canExportReports ? "Ya" : "Tidak"}</li>
-                  <li>Kirim notifikasi: {access.canSendNotifications ? "Ya" : "Tidak"}</li>
-                </ul>
-              </article>
-            </section>
-          </>
-        ) : null}
+        {activeTab === "dashboard" && (
+          <DashboardTab
+            metrics={metrics}
+            recentAttendances={data.recentAttendances}
+            roleAccess={data.roleAccess}
+            access={access}
+          />
+        )}
 
-        {activeTab === "angkatan" ? (
-          <SectionMaster
-            title="Tambah angkatan"
-            subtitle="Master angkatan"
+        {activeTab === "angkatan" && (
+          <BatchTab
+            form={forms.batch}
             onSubmit={submitFactory("batch", api.createBatch, initialForms.batch)}
-            form={
-              <>
-                <label>
-                  Nama angkatan
-                  <input value={forms.batch.name} onChange={(e) => updateForm("batch", "name", e.target.value)} />
-                </label>
-                <label>
-                  Jenjang
-                  <input value={forms.batch.level} onChange={(e) => updateForm("batch", "level", e.target.value)} />
-                </label>
-                <label>
-                  Keterangan
-                  <textarea value={forms.batch.description} onChange={(e) => updateForm("batch", "description", e.target.value)} />
-                </label>
-              </>
-            }
-            button="Simpan Angkatan"
-            table={
-              <SimpleTable
-                headers={["Nama", "Jenjang", "Siswa", "Kelas"]}
-                rows={data.batches.map((item) => [item.name, item.level, item._count.students, item._count.classes])}
-              />
-            }
+            updateForm={(field, value) => updateForm("batch", field, value)}
+            data={data.batches}
           />
-        ) : null}
+        )}
 
-        {activeTab === "siswa" ? (
-          <SectionMaster
-            title="Tambah siswa baru"
-            subtitle="Master siswa"
+        {activeTab === "siswa" && (
+          <StudentTab
+            form={forms.student}
             onSubmit={submitFactory("student", api.createStudent, initialForms.student)}
-            form={
-              <>
-                <div className="field-grid">
-                  <label>
-                    Kode siswa
-                    <input value={forms.student.studentCode} onChange={(e) => updateForm("student", "studentCode", e.target.value)} />
-                  </label>
-                  <label>
-                    Nama lengkap
-                    <input value={forms.student.fullName} onChange={(e) => updateForm("student", "fullName", e.target.value)} />
-                  </label>
-                  <label>
-                    Jenis kelamin
-                    <select value={forms.student.gender} onChange={(e) => updateForm("student", "gender", e.target.value)}>
-                      <option>Laki-laki</option>
-                      <option>Perempuan</option>
-                    </select>
-                  </label>
-                  <label>
-                    Angkatan
-                    <select value={forms.student.batchId} onChange={(e) => updateForm("student", "batchId", e.target.value)}>
-                      {data.batches.map((item) => (
-                        <option key={item.id} value={item.id}>{item.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Nama orang tua
-                    <input value={forms.student.parentName} onChange={(e) => updateForm("student", "parentName", e.target.value)} />
-                  </label>
-                  <label>
-                    Nomor orang tua
-                    <input value={forms.student.parentPhone} onChange={(e) => updateForm("student", "parentPhone", e.target.value)} />
-                  </label>
-                </div>
-                <label>
-                  Sekolah
-                  <input value={forms.student.schoolName} onChange={(e) => updateForm("student", "schoolName", e.target.value)} />
-                </label>
-                <label>
-                  Alamat
-                  <textarea value={forms.student.address} onChange={(e) => updateForm("student", "address", e.target.value)} />
-                </label>
-              </>
-            }
-            button="Simpan Siswa"
-            table={
-              <SimpleTable
-                headers={["Kode", "Nama", "Angkatan", "Orang Tua", "Evaluasi Terakhir"]}
-                rows={data.students.map((item) => [
-                  item.studentCode,
-                  item.fullName,
-                  item.batch.name,
-                  item.parentPhone,
-                  item.evaluations[0]?.summary || "-"
-                ])}
-              />
-            }
+            updateForm={(field, value) => updateForm("student", field, value)}
+            data={data.students}
+            batches={data.batches}
           />
-        ) : null}
+        )}
 
-        {activeTab === "kelas" ? (
-          <SectionMaster
-            title="Buat kelas les"
-            subtitle="Master kelas"
+        {activeTab === "kelas" && (
+          <ClassTab
+            form={forms.classRoom}
             onSubmit={submitFactory("classRoom", api.createClass, initialForms.classRoom)}
-            form={
-              <>
-                <div className="field-grid">
-                  <label>
-                    Nama kelas
-                    <input value={forms.classRoom.name} onChange={(e) => updateForm("classRoom", "name", e.target.value)} />
-                  </label>
-                  <label>
-                    Mapel
-                    <input value={forms.classRoom.subject} onChange={(e) => updateForm("classRoom", "subject", e.target.value)} />
-                  </label>
-                  <label>
-                    Ruangan
-                    <input value={forms.classRoom.room} onChange={(e) => updateForm("classRoom", "room", e.target.value)} />
-                  </label>
-                  <label>
-                    Hari
-                    <select value={forms.classRoom.scheduleDay} onChange={(e) => updateForm("classRoom", "scheduleDay", e.target.value)}>
-                      {dayOptions.map((day) => <option key={day}>{day}</option>)}
-                    </select>
-                  </label>
-                  <label>
-                    Mulai
-                    <input type="time" value={forms.classRoom.startTime} onChange={(e) => updateForm("classRoom", "startTime", e.target.value)} />
-                  </label>
-                  <label>
-                    Selesai
-                    <input type="time" value={forms.classRoom.endTime} onChange={(e) => updateForm("classRoom", "endTime", e.target.value)} />
-                  </label>
-                </div>
-                <label>
-                  Angkatan
-                  <select value={forms.classRoom.batchId} onChange={(e) => updateForm("classRoom", "batchId", e.target.value)}>
-                    {data.batches.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
-                </label>
-              </>
-            }
-            button="Simpan Kelas"
-            table={
-              <SimpleTable
-                headers={["Kelas", "Mapel", "Angkatan", "Jadwal"]}
-                rows={data.classes.map((item) => [
-                  item.name,
-                  item.subject,
-                  item.batch.name,
-                  `${item.scheduleDay}, ${item.startTime} - ${item.endTime}`
-                ])}
-              />
-            }
+            updateForm={(field, value) => updateForm("classRoom", field, value)}
+            data={data.classes}
+            batches={data.batches}
           />
-        ) : null}
+        )}
 
-        {activeTab === "sesi" ? (
-          <SectionMaster
-            title="Tambah sesi les"
-            subtitle="Sesi pembelajaran"
+        {activeTab === "sesi" && (
+          <SessionTab
+            form={forms.session}
             onSubmit={submitFactory("session", api.createSession, initialForms.session, (payload) => ({
               ...payload,
               date: new Date(payload.date).toISOString()
             }))}
-            form={
-              <>
-                <label>
-                  Kelas
-                  <select value={forms.session.classId} onChange={(e) => updateForm("session", "classId", e.target.value)}>
-                    {data.classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
-                </label>
-                <label>
-                  Waktu sesi
-                  <input type="datetime-local" value={forms.session.date} onChange={(e) => updateForm("session", "date", e.target.value)} />
-                </label>
-                <label>
-                  Topik
-                  <input value={forms.session.topic} onChange={(e) => updateForm("session", "topic", e.target.value)} />
-                </label>
-                <label>
-                  Catatan
-                  <textarea value={forms.session.notes} onChange={(e) => updateForm("session", "notes", e.target.value)} />
-                </label>
-              </>
-            }
-            button="Simpan Sesi"
-            table={
-              <SimpleTable
-                headers={["Kelas", "Tanggal", "Topik", "QR Aktif", "Evaluasi"]}
-                rows={data.sessions.map((item) => [
-                  item.classRoom.name,
-                  new Date(item.date).toLocaleString("id-ID"),
-                  item.topic,
-                  item.qrSessions[0] ? "Tersedia" : "-",
-                  item._count.evaluations
-                ])}
-              />
-            }
+            updateForm={(field, value) => updateForm("session", field, value)}
+            data={data.sessions}
+            classes={data.classes}
           />
-        ) : null}
+        )}
 
-        {activeTab === "absensi" ? (
-          <section className="panel-grid">
-            <form className="panel-card form-card" onSubmit={submitFactory("attendance", api.saveAttendance, initialForms.attendance)}>
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">Input absensi</p>
-                  <h3>Catat kehadiran siswa</h3>
-                </div>
-              </div>
-              <label>
-                Siswa
-                <select value={forms.attendance.studentId} onChange={(e) => updateForm("attendance", "studentId", e.target.value)}>
-                  {data.students.map((item) => <option key={item.id} value={item.id}>{item.studentCode} - {item.fullName}</option>)}
-                </select>
-              </label>
-              <label>
-                Sesi
-                <select value={forms.attendance.sessionId} onChange={(e) => updateForm("attendance", "sessionId", e.target.value)}>
-                  {data.sessions.map((item) => <option key={item.id} value={item.id}>{item.classRoom.name} - {item.topic}</option>)}
-                </select>
-              </label>
-              <label>
-                Status
-                <select value={forms.attendance.status} onChange={(e) => updateForm("attendance", "status", e.target.value)}>
-                  {attendanceOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                </select>
-              </label>
-              <label>
-                Catatan
-                <textarea value={forms.attendance.note} onChange={(e) => updateForm("attendance", "note", e.target.value)} />
-              </label>
-              <button className="primary-button">Simpan Absensi</button>
-            </form>
+        {activeTab === "absensi" && (
+          <AttendanceTab
+            form={forms.attendance}
+            onSubmit={submitFactory("attendance", api.saveAttendance, initialForms.attendance)}
+            updateForm={(field, value) => updateForm("attendance", field, value)}
+            students={data.students}
+            sessions={data.sessions}
+            attendance={data.attendance}
+            onCheckout={handleCheckout}
+            onSendNotification={handleSendNotification}
+            canSendNotifications={access.canSendNotifications}
+          />
+        )}
 
-            <section className="panel-card">
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">Riwayat absensi</p>
-                  <h3>Kehadiran terbaru</h3>
-                </div>
-              </div>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Siswa</th>
-                      <th>Kelas</th>
-                      <th>Status</th>
-                      <th>Jam masuk</th>
-                      <th>Jam pulang</th>
-                      <th>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.attendance.map((item) => (
-                      <tr key={item.id}>
-                        <td>{item.student.fullName}</td>
-                        <td>{item.session.classRoom.name}</td>
-                        <td>{item.status}</td>
-                        <td>{item.checkInAt ? new Date(item.checkInAt).toLocaleTimeString("id-ID") : "-"}</td>
-                        <td>{item.checkOutAt ? new Date(item.checkOutAt).toLocaleTimeString("id-ID") : "-"}</td>
-                        <td>
-                          <div className="inline-actions">
-                              <button type="button" className="ghost-button small-button" onClick={() => handleCheckout(item.id)} disabled={Boolean(item.checkOutAt)}>
-                              Catat Pulang
-                              </button>
-                            {access.canSendNotifications ? (
-                              <button type="button" className="ghost-button small-button" onClick={() => handleSendNotification(item.id)}>
-                                WhatsApp
-                              </button>
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          </section>
-        ) : null}
+        {activeTab === "qr-attendance" && (
+          <QrAttendanceTab
+            form={{ ...forms.qr, ...forms.qrScan }}
+            onSubmit={submitFactory("qr", api.createQrSession, initialForms.qr)}
+            updateForm={(field, value) => {
+              if (field === "studentId" || field === "code") {
+                updateForm("qrScan", field, value);
+              } else {
+                updateForm("qr", field, value);
+              }
+            }}
+            sessions={data.sessions}
+            students={data.students}
+            qrPreview={qrPreview}
+          />
+        )}
 
-        {activeTab === "qr-attendance" ? (
-          <section className="panel-grid">
-            <form className="panel-card form-card" onSubmit={submitFactory("qr", api.createQrSession, initialForms.qr)}>
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">QR absensi</p>
-                  <h3>Buat QR sesi</h3>
-                </div>
-              </div>
-              <label>
-                Sesi kelas
-                <select value={forms.qr.sessionId} onChange={(e) => updateForm("qr", "sessionId", e.target.value)}>
-                  {data.sessions.map((item) => <option key={item.id} value={item.id}>{item.classRoom.name} - {item.topic}</option>)}
-                </select>
-              </label>
-              <button className="primary-button">Buat QR</button>
-            </form>
+        {activeTab === "evaluasi" && (
+          <EvaluationTab
+            form={forms.evaluation}
+            onSubmit={submitFactory("evaluation", api.createEvaluation, initialForms.evaluation)}
+            updateForm={(field, value) => updateForm("evaluation", field, value)}
+            students={data.students}
+            sessions={data.sessions}
+            evaluationSummary={data.evaluationSummary}
+            canEvaluate={access.canEvaluate}
+          />
+        )}
 
-            <article className="panel-card">
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">Preview QR</p>
-                  <h3>Token kehadiran sesi</h3>
-                </div>
-              </div>
-              {qrPreview ? (
-                <>
-                  <div className="qr-preview" dangerouslySetInnerHTML={{ __html: qrPreview.svg }} />
-                  <p className="muted">Tautan cepat aplikasi seluler: {qrPreview.deepLink}</p>
-                </>
-              ) : (
-                <p className="muted">Buat QR untuk melihat kode sesi.</p>
-              )}
+        {activeTab === "laporan" && (
+          <ReportTab reportRows={data.reportRows} />
+        )}
 
-              <form className="stack-form" onSubmit={submitFactory("qrScan", api.scanQr, initialForms.qrScan)}>
-                <label>
-                  Siswa
-                  <select value={forms.qrScan.studentId} onChange={(e) => updateForm("qrScan", "studentId", e.target.value)}>
-                    {data.students.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
-                  </select>
-                </label>
-                <label>
-                  Kode hasil pemindaian
-                  <textarea value={forms.qrScan.code} onChange={(e) => updateForm("qrScan", "code", e.target.value)} placeholder="Tempel kode QR atau hasil pemindai aplikasi seluler di sini" />
-                </label>
-                <button className="secondary-button">Simulasikan Pindai QR</button>
-              </form>
-            </article>
-          </section>
-        ) : null}
+        {activeTab === "notifikasi" && (
+          <NotificationTab notifications={data.notifications} />
+        )}
 
-        {activeTab === "evaluasi" ? (
-          <section className="panel-grid">
-            {access.canEvaluate ? (
-              <form className="panel-card form-card" onSubmit={submitFactory("evaluation", api.createEvaluation, initialForms.evaluation)}>
-                <div className="panel-head">
-                  <div>
-                    <p className="eyebrow">Evaluasi siswa</p>
-                    <h3>Penilaian sesi</h3>
-                  </div>
-                </div>
-                <label>
-                  Siswa
-                  <select value={forms.evaluation.studentId} onChange={(e) => updateForm("evaluation", "studentId", e.target.value)}>
-                    {data.students.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
-                  </select>
-                </label>
-                <label>
-                  Sesi
-                  <select value={forms.evaluation.sessionId} onChange={(e) => updateForm("evaluation", "sessionId", e.target.value)}>
-                    {data.sessions.map((item) => <option key={item.id} value={item.id}>{item.classRoom.name} - {item.topic}</option>)}
-                  </select>
-                </label>
-                <div className="field-grid">
-                  {["disciplineScore", "focusScore", "participationScore", "homeworkScore"].map((field) => (
-                    <label key={field}>
-                      {{
-                        disciplineScore: "Kedisiplinan",
-                        focusScore: "Fokus",
-                        participationScore: "Partisipasi",
-                        homeworkScore: "Tugas rumah"
-                      }[field]}
-                      <select value={forms.evaluation[field]} onChange={(e) => updateForm("evaluation", field, e.target.value)}>
-                        {evaluationOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                      </select>
-                    </label>
-                  ))}
-                </div>
-                <label>
-                  Ringkasan evaluasi
-                  <textarea value={forms.evaluation.summary} onChange={(e) => updateForm("evaluation", "summary", e.target.value)} />
-                </label>
-                <label>
-                  Rekomendasi
-                  <textarea value={forms.evaluation.recommendation} onChange={(e) => updateForm("evaluation", "recommendation", e.target.value)} />
-                </label>
-                <button className="primary-button">Simpan Evaluasi</button>
-              </form>
-            ) : (
-              <article className="panel-card"><p className="muted">Peran ini tidak memiliki izin untuk mengisi evaluasi.</p></article>
-            )}
-
-            <section className="panel-card">
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">Ringkasan perkembangan</p>
-                  <h3>Monitoring hasil belajar</h3>
-                </div>
-              </div>
-              <div className="stack-list">
-                {data.evaluationSummary.map((item) => (
-                  <div className="progress-card" key={item.studentId}>
-                    <div>
-                      <strong>{item.studentName}</strong>
-                      <span>{item.latestClass}</span>
-                    </div>
-                    <div className="progress-meta">
-                      <span>{item.progressPercent}%</span>
-                      <div className="progress-bar"><div style={{ width: `${item.progressPercent}%` }} /></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </section>
-        ) : null}
-
-        {activeTab === "laporan" ? (
-          <section className="panel-grid">
-            <article className="panel-card form-card">
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">Ekspor laporan</p>
-                  <h3>Unduh PDF dan Excel</h3>
-                </div>
-              </div>
-              <p className="muted">File dihasilkan dari data absensi, sesi, dan evaluasi yang tersimpan.</p>
-              <div className="inline-actions">
-                <a className="primary-button link-button" href={`${apiBaseUrl}/reports/attendance.pdf`} target="_blank" rel="noreferrer">Unduh PDF</a>
-                <a className="secondary-button link-button" href={`${apiBaseUrl}/reports/attendance.xlsx`} target="_blank" rel="noreferrer">Unduh Excel</a>
-              </div>
-            </article>
-            <article className="panel-card">
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">Preview laporan</p>
-                  <h3>Data siap diekspor</h3>
-                </div>
-              </div>
-              <SimpleTable
-                headers={["Siswa", "Angkatan", "Kelas", "Topik", "Status", "Evaluasi"]}
-                rows={data.reportRows.map((item) => [
-                  item.studentName,
-                  item.batchName,
-                  item.className,
-                  item.sessionTopic,
-                  item.status,
-                  item.evaluationSummary || "-"
-                ])}
-              />
-            </article>
-          </section>
-        ) : null}
-
-        {activeTab === "notifikasi" ? (
-          <section className="panel-grid">
-            <article className="panel-card form-card">
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">WhatsApp orang tua</p>
-                  <h3>Alur notifikasi</h3>
-                </div>
-              </div>
-              <ul className="feature-list">
-                <li>Admin/staff kirim notifikasi dari data absensi terbaru.</li>
-                <li>Pesan membawa status hadir dan evaluasi singkat siswa.</li>
-                <li>Semua pengiriman tercatat untuk audit dan follow up.</li>
-              </ul>
-            </article>
-            <article className="panel-card">
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">Log pengiriman</p>
-                  <h3>Riwayat notifikasi</h3>
-                </div>
-              </div>
-              <SimpleTable
-                headers={["Siswa", "No Tujuan", "Provider", "Status", "Waktu"]}
-                rows={data.notifications.map((item) => [
-                  item.student.fullName,
-                  item.targetPhone,
-                  item.provider,
-                  item.status,
-                  new Date(item.createdAt).toLocaleString("id-ID")
-                ])}
-              />
-            </article>
-          </section>
-        ) : null}
-
-        {activeTab === "pengguna" ? (
-          <SectionMaster
-            title="Tambah operator"
-            subtitle="Hak akses"
+        {activeTab === "pengguna" && (
+          <UserTab
+            form={forms.user}
             onSubmit={submitFactory("user", api.createUser, initialForms.user)}
-            form={
-              <>
-                <label>
-                  Nama
-                  <input value={forms.user.name} onChange={(e) => updateForm("user", "name", e.target.value)} />
-                </label>
-                <label>
-                  Email
-                  <input type="email" value={forms.user.email} onChange={(e) => updateForm("user", "email", e.target.value)} />
-                </label>
-                <label>
-                  Kata sandi
-                  <input type="password" value={forms.user.password} onChange={(e) => updateForm("user", "password", e.target.value)} />
-                </label>
-                <label>
-                  Peran
-                  <select value={forms.user.role} onChange={(e) => updateForm("user", "role", e.target.value)}>
-                    <option value="ADMIN">Admin</option>
-                    <option value="STAFF">Staf</option>
-                    <option value="INSTRUCTOR">PENGAJAR</option>
-                  </select>
-                </label>
-              </>
-            }
-            button="Simpan Pengguna"
-            table={<SimpleTable headers={["Nama", "Email", "Peran", "Status"]} rows={data.users.map((item) => [item.name, item.email, roleNameMap[item.role] || item.role, item.isActive ? "Aktif" : "Nonaktif"])} />}
+            updateForm={(field, value) => updateForm("user", field, value)}
+            users={data.users}
           />
-        ) : null}
+        )}
 
-        {activeTab === "batasan-role" ? (
-          <section className="panel-grid role-grid">
-            {Object.entries(data.allRoles).map(([role, item]) => (
-              <article className="panel-card" key={role}>
-                <div className="panel-head">
-                  <div>
-                    <p className="eyebrow">{roleNameMap[role] || role}</p>
-                    <h3>{item.label}</h3>
-                  </div>
-                </div>
-                <ul className="feature-list">
-                  <li>Kelola pengguna: {item.canManageUsers ? "Ya" : "Tidak"}</li>
-                  <li>Kelola master data: {item.canManageMasterData ? "Ya" : "Tidak"}</li>
-                  <li>Kelola absensi: {item.canManageAttendance ? "Ya" : "Tidak"}</li>
-                  <li>QR absensi: {item.canCreateQr ? "Ya" : "Tidak"}</li>
-                  <li>Ekspor laporan: {item.canExportReports ? "Ya" : "Tidak"}</li>
-                  <li>Notifikasi WhatsApp: {item.canSendNotifications ? "Ya" : "Tidak"}</li>
-                  <li>Input evaluasi: {item.canEvaluate ? "Ya" : "Tidak"}</li>
-                  <li>Lihat semua evaluasi: {item.canViewAllEvaluations ? "Ya" : "Tidak"}</li>
-                </ul>
-              </article>
-            ))}
-          </section>
-        ) : null}
+        {activeTab === "batasan-role" && (
+          <RoleLimitTab allRoles={data.allRoles} />
+        )}
 
-        {activeTab === "mobile" ? (
-          <section className="panel-grid">
-            <article className="panel-card form-card">
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">React Native</p>
-                  <h3>Fondasi aplikasi seluler sudah disiapkan</h3>
-                </div>
-              </div>
-              <ul className="feature-list">
-                <li>Login aplikasi seluler ke API yang sama dengan web.</li>
-                <li>Layar absensi cepat dan pindai QR manual.</li>
-                <li>Siap dikembangkan ke pemindai kamera native.</li>
-              </ul>
-              <p className="muted">Folder: /Users/felix/Documents/New project/mobile-app</p>
-            </article>
-            <article className="panel-card">
-              <div className="panel-head">
-                <div>
-                  <p className="eyebrow">Implementasi</p>
-                  <h3>Keselarasan web dan aplikasi seluler</h3>
-                </div>
-              </div>
-              <p className="muted">
-                Aplikasi seluler memakai endpoint QR, absensi, dan autentikasi yang sama sehingga alur operasional tetap konsisten.
-              </p>
-            </article>
-          </section>
-        ) : null}
+        {activeTab === "mobile" && (
+          <MobileAppTab />
+        )}
       </main>
-    </div>
-  );
-}
-
-function SectionMaster({ subtitle, title, onSubmit, form, button, table }) {
-  return (
-    <section className="panel-grid">
-      <form className="panel-card form-card" onSubmit={onSubmit}>
-        <div className="panel-head">
-          <div>
-            <p className="eyebrow">{subtitle}</p>
-            <h3>{title}</h3>
-          </div>
-        </div>
-        {form}
-        <button className="primary-button">{button}</button>
-      </form>
-      <section className="panel-card">{table}</section>
-    </section>
-  );
-}
-
-function SimpleTable({ headers, rows }) {
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            {headers.map((header) => <th key={header}>{header}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            <tr key={`${row[0]}-${index}`}>
-              {row.map((cell, cellIndex) => <td key={`${headers[cellIndex]}-${index}`}>{cell}</td>)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
