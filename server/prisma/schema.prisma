@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  STAFF
+  INSTRUCTOR
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  EXCUSED
+  SICK
+  ABSENT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum EvaluationScore {
+  NEEDS_SUPPORT
+  DEVELOPING
+  GOOD
+  EXCELLENT
+}
+
+model User {
+  id                String             @id @default(cuid())
+  name              String
+  email             String             @unique
+  passwordHash      String
+  role              UserRole
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  attendances       Attendance[]       @relation("CheckedBy")
+  evaluations       Evaluation[]       @relation("EvaluatedBy")
+  notificationLogs  NotificationLog[]  @relation("NotifiedBy")
+  qrSessionsCreated QRSession[]        @relation("QrCreatedBy")
+}
+
+model Batch {
+  id          String   @id @default(cuid())
+  name        String
+  level       String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  students    Student[]
+  classes     ClassRoom[]
+}
+
+model Student {
+  id               String            @id @default(cuid())
+  studentCode      String            @unique
+  fullName         String
+  gender           String
+  parentName       String
+  parentPhone      String
+  schoolName       String?
+  address          String?
+  isActive         Boolean           @default(true)
+  batchId          String
+  batch            Batch             @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  attendances      Attendance[]
+  evaluations      Evaluation[]
+  notificationLogs NotificationLog[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model ClassRoom {
+  id          String        @id @default(cuid())
+  name        String
+  subject     String
+  room        String?
+  scheduleDay String
+  startTime   String
+  endTime     String
+  batchId     String
+  batch       Batch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  sessions    ClassSession[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model ClassSession {
+  id          String       @id @default(cuid())
+  classId     String
+  classRoom   ClassRoom    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  date        DateTime
+  topic       String
+  notes       String?
+  attendances Attendance[]
+  evaluations Evaluation[]
+  qrSessions  QRSession[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Attendance {
+  id           String           @id @default(cuid())
+  studentId    String
+  sessionId    String
+  status       AttendanceStatus
+  checkInAt    DateTime?
+  checkOutAt   DateTime?
+  note         String?
+  recordedById String
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  session      ClassSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  recordedBy   User             @relation("CheckedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+  notificationLogs NotificationLog[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([studentId, sessionId])
+}
+
+model QRSession {
+  id           String       @id @default(cuid())
+  sessionId     String
+  code          String       @unique
+  expiresAt     DateTime
+  isActive      Boolean      @default(true)
+  createdById   String
+  createdBy     User         @relation("QrCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  session       ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model Evaluation {
+  id             String          @id @default(cuid())
+  studentId       String
+  sessionId       String
+  evaluatorId     String
+  disciplineScore EvaluationScore
+  focusScore      EvaluationScore
+  participationScore EvaluationScore
+  homeworkScore   EvaluationScore
+  summary         String
+  recommendation  String?
+  student         Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  session         ClassSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  evaluator       User            @relation("EvaluatedBy", fields: [evaluatorId], references: [id], onDelete: Restrict)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([studentId, sessionId])
+}
+
+model NotificationLog {
+  id            String             @id @default(cuid())
+  studentId      String
+  attendanceId   String?
+  triggeredById  String
+  targetPhone    String
+  message        String
+  status         NotificationStatus @default(PENDING)
+  provider       String
+  providerRef    String?
+  errorMessage   String?
+  student        Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attendance     Attendance?        @relation(fields: [attendanceId], references: [id], onDelete: SetNull)
+  triggeredBy    User               @relation("NotifiedBy", fields: [triggeredById], references: [id], onDelete: Restrict)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}

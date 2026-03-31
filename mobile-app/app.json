@@ -1,0 +1,9 @@
+{
+  "expo": {
+    "name": "Absensi Bimbel Mobile",
+    "slug": "absensi-bimbel-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light"
+  }
+}
